@@ -1,48 +1,54 @@
-# CLUCKED: Cursed Domains — 3D browser prototype
+# CLUCKED: Cursed Domains — 3D browser fighter
 
-A small playable Three.js prototype with cute procedural 3D chicken fighters, an arena, basic attacks, AI opponent, special attack, dodge, and Domain Expansion effects.
+A playable Three.js fighting game: cute procedural 3D chicken fighters, a best-of-three match against an AI opponent (Easy / Normal / Hard), combos, blocking, dodging, a projectile special, and Domain Expansions that fill the arena with effects.
 
 ## Run it
-Because the game uses JavaScript modules, run it through a local server instead of opening `index.html` directly.
 
-### Option A: Python
+The game uses JavaScript modules, so serve it over HTTP instead of opening `index.html` directly.
 
-1. Install Python 3 if needed.
-2. Open a terminal in this folder.
-3. Run: `python -m http.server 8000`
-4. Open `http://localhost:8000` in your browser.
+- **Python:** `python3 -m http.server 8000` (or `npm start`), then open `http://localhost:8000`
+- **VS Code:** install Live Server, right-click `index.html`, choose **Open with Live Server**
 
-### Option B: VS Code
-Install the Live Server extension, right-click `index.html`, and choose **Open with Live Server**.
+Three.js r169 is bundled in `vendor/three.module.js`, so the game works offline and does not depend on a CDN. (CDNs are only used as a fallback if the bundled file is missing.)
+
+If the 3D engine can't start (for example WebGL is disabled), the Start button turns into **RETRY LOADING** and a message explains what went wrong.
 
 ## Controls
 
-- A / D: Move
-- W: Jump
-- J: Light attack
-- K: Heavy attack
-- L: Special attack
-- Space: Dodge
-- Q: Domain Expansion (requires 100% energy)
-- Shift: Sprint
-- Restart button: reset the match
+| Key | Action |
+| --- | --- |
+| A / D | Move (hold Shift to sprint) |
+| W | Jump |
+| S | Block (chip damage only, no stun) |
+| J | Light attack (peck) |
+| K | Heavy attack |
+| L | Special (projectile) |
+| Space | Dodge (brief invulnerability) |
+| Q | Domain Expansion (needs a full purple meter) |
+| P / Esc | Pause |
+| M | Mute |
+
+Touch devices get on-screen buttons automatically.
+
+## How a match works
+
+- Best of three rounds, 99 seconds per round. Lower HP wins when time runs out.
+- Landing and blocking hits fills the Domain meter. At 100% press **Q** to expand your domain: for a few seconds your hits do extra damage, your opponent is slowed, can't charge their meter, and takes unblockable damage over time.
+- Combos chain light and heavy attacks, with damage scaling so they can't be endless.
+- The pause menu opens automatically if you switch tabs or windows.
+
+## Tests
+
+`npm test` runs the rules engine (`src/game.js`) headlessly in Node: combat, blocking, combos, dodges, domains, round flow and AI-vs-bot matches at every difficulty.
 
 ## Deploy to Vercel
 
-This app is a static site, so it can be deployed on Vercel without a build step.
+Static site, no build step: import the repo in Vercel with Framework Preset **None**, empty Build Command, and Output Directory `.`.
 
-1. Push this folder to a GitHub repository.
-2. In Vercel, click New Project and import the repository.
-3. Keep the default settings:
-   - Framework Preset: None
-   - Build Command: leave blank
-   - Output Directory: .
-4. Deploy.
+## Project layout
 
-Vercel will serve the root HTML file and static assets automatically.
-
-## Notes
-
-- Three.js is loaded from jsDelivr, so an internet connection is required.
-- This is an initial playable prototype, not a finished commercial game.
-- The current prototype uses procedural models and simplified combat. Advanced rigged animations, true domain clashes, character selection, and local two-player controls are not yet implemented.
+- `src/game.js` — pure game rules and AI (no DOM, no Three.js)
+- `src/view.js` — Three.js scene, fighters, effects, camera
+- `src/main.js` — wiring: loading, menus, HUD, game loop
+- `src/input.js`, `src/audio.js` — keyboard/touch input and synthesized sound
+- `vendor/three.module.js` — bundled Three.js r169 (MIT)

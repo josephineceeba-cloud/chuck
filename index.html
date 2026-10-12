@@ -2,25 +2,102 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080b1c">
 <title>CLUCKED: Cursed Domains</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="stage"></div>
+<div id="flash"></div>
+<div id="vignette"></div>
+
 <div id="ui">
-  <header><div class="brand">CLUCKED <span>CURSED DOMAINS</span></div><div id="status">READY TO FIGHT</div></header>
+  <header>
+    <div class="brand">CLUCKED <span>CURSED DOMAINS</span></div>
+    <div class="hdr-right">
+      <div id="status">READY TO FIGHT</div>
+      <button id="mute" class="icon" type="button" aria-label="Toggle sound" title="Sound (M)">🔊</button>
+      <button id="pausebtn" class="icon" type="button" aria-label="Pause" title="Pause (P / Esc)">⏸</button>
+    </div>
+  </header>
+
   <section class="bars">
-    <div class="fighter"><strong>🐥 SUNNY PECK</strong><div class="bar"><i id="p1hp"></i></div><small id="p1label">100 / 100 HP</small></div>
-    <div class="round">ROUND 1<br><b id="timer">99</b></div>
-    <div class="fighter right"><strong>🌑 SHADOW CLUCK</strong><div class="bar"><i id="p2hp"></i></div><small id="p2label">100 / 100 HP</small></div>
+    <div class="fighter" id="f1">
+      <strong>🐥 SUNNY PECK</strong>
+      <div class="pips" id="pips1"><i></i><i></i></div>
+      <div class="bar hp"><b class="trail" id="p1trail"></b><i class="fill" id="p1hp"></i></div>
+      <div class="bar energy" id="p1energybar"><i class="fill" id="p1energy"></i></div>
+      <small id="p1label">100 / 100 HP</small>
+    </div>
+    <div class="round"><span id="roundlabel">ROUND 1</span><b id="timer">99</b></div>
+    <div class="fighter right" id="f2">
+      <strong>🌑 SHADOW CLUCK</strong>
+      <div class="pips" id="pips2"><i></i><i></i></div>
+      <div class="bar hp"><b class="trail" id="p2trail"></b><i class="fill" id="p2hp"></i></div>
+      <div class="bar energy" id="p2energybar"><i class="fill" id="p2energy"></i></div>
+      <small id="p2label">100 / 100 HP</small>
+    </div>
   </section>
+
+  <div id="combo" class="hidden"><b id="combonum">2</b><span>HIT COMBO</span></div>
+  <div id="callout" aria-live="assertive"></div>
   <div id="banner">CUTE CHICKENS. DEADLY DOMAINS.</div>
+
   <footer>
-    <span><kbd>A</kbd><kbd>D</kbd> Move · <kbd>W</kbd> Jump · <kbd>J</kbd> Peck · <kbd>K</kbd> Heavy · <kbd>L</kbd> Special · <kbd>Q</kbd> Domain</span>
-    <span class="righthelp"><button id="restart">RESTART</button></span>
+    <span class="help">
+      <kbd>A</kbd><kbd>D</kbd> Move · <kbd>W</kbd> Jump · <kbd>S</kbd> Block · <kbd>J</kbd> Peck · <kbd>K</kbd> Heavy ·
+      <kbd>L</kbd> Special · <kbd>Space</kbd> Dodge · <kbd>Q</kbd> Domain
+    </span>
+    <span class="righthelp"><button id="restart" type="button">RESTART</button></span>
   </footer>
 </div>
-<div id="overlay"><div class="panel"><h1>CLUCKED</h1><p>CURSED DOMAINS</p><div class="chicks">🐥 <span>VS</span> 🐓</div><p class="desc">A tiny 3D anime showdown.</p><button id="start">START FIGHT</button><small>WASD to move · J/K/L to attack · Q for Domain Expansion</small></div></div>
+
+<div id="floaters" aria-hidden="true"></div>
+
+<div id="touch" class="hidden">
+  <div class="pad left">
+    <button type="button" data-hold="left" aria-label="Move left">◀</button>
+    <button type="button" data-hold="right" aria-label="Move right">▶</button>
+    <button type="button" data-act="jump" aria-label="Jump">▲</button>
+    <button type="button" data-hold="block" aria-label="Block">🛡</button>
+  </div>
+  <div class="pad right">
+    <button type="button" data-act="light">J</button>
+    <button type="button" data-act="heavy">K</button>
+    <button type="button" data-act="special">L</button>
+    <button type="button" data-act="dodge">DASH</button>
+    <button type="button" data-act="domain" class="domainbtn">Q</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="panel">
+    <h1>CLUCKED</h1>
+    <p class="sub">CURSED DOMAINS</p>
+    <div class="chicks">🐥 <span>VS</span> 🐓</div>
+    <div id="result" class="hidden"></div>
+    <p class="desc" id="desc">A tiny 3D anime showdown. Best of three rounds.</p>
+    <div class="seg" id="difficulty" role="radiogroup" aria-label="Difficulty">
+      <button type="button" role="radio" data-level="0">EASY</button>
+      <button type="button" role="radio" data-level="1">NORMAL</button>
+      <button type="button" role="radio" data-level="2">HARD</button>
+    </div>
+    <button id="start" type="button" disabled>LOADING…</button>
+    <div id="loaderror" class="hidden" role="alert"></div>
+    <small>A/D move · W jump · S block · J/K/L attack · Space dodge · Q Domain Expansion · P pause · M mute<br>
+      Fill the purple meter by fighting, then unleash your Domain.</small>
+  </div>
+</div>
+
+<div id="pause" class="hidden">
+  <div class="panel">
+    <h1 class="small">PAUSED</h1>
+    <button id="resume" type="button">RESUME</button>
+    <button id="quit" type="button" class="ghost">QUIT TO MENU</button>
+  </div>
+</div>
+
 <script type="module" src="src/main.js"></script>
 </body>
 </html>
