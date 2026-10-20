@@ -8,12 +8,12 @@ import { ATTACKS } from './game.js';
 
 const damp = (cur, target, k, dt) => cur + (target - cur) * (1 - Math.exp(-k * dt));
 const DOMAIN_COLORS = { p1: 0x172e66, p2: 0x260d46 };
-const BASE_BG = 0x10152f;
+const BASE_BG = 0xf6d5b6; // morning haze at the horizon (fog and clear colour)
 
 export function createView(THREE, mount) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BASE_BG);
-  scene.fog = new THREE.Fog(BASE_BG, 16, 40);
+  scene.fog = new THREE.Fog(BASE_BG, 24, 64);
 
   const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 100);
   camera.position.set(0, 6.4, 12.5);
@@ -28,9 +28,9 @@ export function createView(THREE, mount) {
   mount.appendChild(renderer.domElement);
 
   // ---- lights -------------------------------------------------------------
-  scene.add(new THREE.HemisphereLight(0xa9d6ff, 0x342044, 2.0));
-  const key = new THREE.DirectionalLight(0xffe7ce, 3.1);
-  key.position.set(-5, 10, 7);
+  scene.add(new THREE.HemisphereLight(0xcfe6ff, 0xe0b98f, 1.7)); // blue sky, warm ground bounce
+  const key = new THREE.DirectionalLight(0xffd3a1, 3.6); // low golden sun: long soft shadows
+  key.position.set(-9, 6.5, 6);
   key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024);
   key.shadow.camera.left = -10;
@@ -40,11 +40,11 @@ export function createView(THREE, mount) {
   key.shadow.camera.updateProjectionMatrix(); // required after changing the bounds
   key.shadow.bias = -0.0004;
   scene.add(key);
-  const rim = new THREE.PointLight(0x8c70ff, 45, 25);
-  rim.position.set(4, 4, -5);
+  const rim = new THREE.PointLight(0xffb870, 22, 25); // sunrise glow from behind
+  rim.position.set(-4, 4, -6);
   scene.add(rim);
-  const blueLight = new THREE.PointLight(0x25dfff, 28, 20);
-  blueLight.position.set(-5, 3, 1);
+  const blueLight = new THREE.PointLight(0xa8dcff, 9, 20); // cool sky fill
+  blueLight.position.set(5, 3, 3);
   scene.add(blueLight);
   const domainLight = new THREE.PointLight(0xffffff, 0, 40);
   domainLight.position.set(0, 7, 3);
@@ -54,14 +54,14 @@ export function createView(THREE, mount) {
     new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive, emissiveIntensity: 0.6 });
 
   // ---- arena --------------------------------------------------------------
-  const floor = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 0.35, 64), mat(0x24284d, 0.8));
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 0.35, 64), mat(0xcbbba8, 0.85));
   floor.position.y = -0.35;
   floor.receiveShadow = true;
   scene.add(floor);
 
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(6.7, 0.035, 8, 100),
-    new THREE.MeshBasicMaterial({ color: 0x7c8dff }),
+    new THREE.MeshBasicMaterial({ color: 0xf0a24f }),
   );
   ring.rotation.x = Math.PI / 2;
   ring.position.y = -0.15;
@@ -69,7 +69,7 @@ export function createView(THREE, mount) {
 
   for (let i = 0; i < 32; i++) {
     const a = (i / 32) * Math.PI * 2;
-    const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.8), mat(i % 2 ? 0x3b427a : 0x6853a8));
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.8), mat(i % 2 ? 0xe6c79b : 0xd99a64));
     p.position.set(Math.cos(a) * 7.3, -0.12, Math.sin(a) * 7.3);
     p.rotation.y = -a;
     scene.add(p);
@@ -79,7 +79,7 @@ export function createView(THREE, mount) {
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2;
     const h = 1.3 + (i % 3) * 0.65;
-    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.3, h, 6), mat(i % 2 ? 0x454b80 : 0x3b326c));
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.3, h, 6), mat(i % 2 ? 0xe3d3bd : 0xc9b194));
     pillar.position.set(Math.cos(a) * 8.8, h / 2 - 0.1, Math.sin(a) * 8.8);
     pillar.castShadow = true;
     scene.add(pillar);
@@ -88,7 +88,7 @@ export function createView(THREE, mount) {
       new THREE.MeshStandardMaterial({
         color: i % 2 ? 0x73efff : 0xc38bff,
         emissive: i % 2 ? 0x28cfff : 0x8e3bff,
-        emissiveIntensity: 1.8,
+        emissiveIntensity: 1.1,
         roughness: 0.2,
       }),
     );
@@ -98,20 +98,118 @@ export function createView(THREE, mount) {
     crystals.push(crystal);
   }
 
-  // Starfield backdrop
+  // ---- morning sky and world ----------------------------------------------
+  // Everything in `fades` is dimmed while a Domain Expansion is active, so the domain's
+  // own colour takes over the sky exactly as it did before.
+  const fades = [];
+  const fade = (m, base) => { fades.push({ m, base }); return m; };
+  const clouds = [];
   {
-    const n = 220;
-    const arr = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const r = 26 + Math.random() * 10;
-      arr[i * 3] = Math.cos(a) * r;
-      arr[i * 3 + 1] = 2 + Math.random() * 18;
-      arr[i * 3 + 2] = Math.sin(a) * r - 6;
+    // Gradient sky dome: soft blue overhead, peach and gold at the horizon.
+    const geo = new THREE.SphereGeometry(85, 32, 16);
+    const pos = geo.attributes.position;
+    const top = new THREE.Color(0x5fa8e6);
+    const mid = new THREE.Color(0xa9d3f2);
+    const low = new THREE.Color(0xffd9ad);
+    const glow = new THREE.Color(0xffb878);
+    const col = new Float32Array(pos.count * 3);
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const t = Math.max(0, pos.getY(i) / 85); // 0 at the horizon, 1 straight up
+      if (t < 0.12) c.copy(glow).lerp(low, t / 0.12);
+      else if (t < 0.45) c.copy(low).lerp(mid, (t - 0.12) / 0.33);
+      else c.copy(mid).lerp(top, Math.min(1, (t - 0.45) / 0.55));
+      col.set([c.r, c.g, c.b], i * 3);
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
-    scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xcfd8ff, size: 0.16, sizeAttenuation: true })));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const dome = new THREE.Mesh(geo, fade(new THREE.MeshBasicMaterial({
+      vertexColors: true, side: THREE.BackSide, fog: false, transparent: true, depthWrite: false,
+    }), 1));
+    dome.renderOrder = -10;
+    scene.add(dome);
+
+    // The rising sun, with a wide soft halo.
+    const sunPos = new THREE.Vector3(-24, 7.4, -66);
+    const disc = (r, color, opacity, order) => {
+      const m = new THREE.Mesh(
+        new THREE.CircleGeometry(r, 48),
+        fade(new THREE.MeshBasicMaterial({ color, fog: false, transparent: true, opacity, depthWrite: false }), opacity),
+      );
+      m.position.copy(sunPos);
+      m.lookAt(0, 6.4, 12.5);
+      m.renderOrder = order;
+      scene.add(m);
+    };
+    disc(26, 0xffc98a, 0.16, -9);
+    disc(15, 0xffd9a8, 0.28, -8);
+    disc(6, 0xfff1cf, 1, -7);
+
+    // Clouds: a few puffy clusters, lit pink on the sunrise side, drifting slowly.
+    const puffGeo = new THREE.SphereGeometry(1, 12, 9);
+    for (let i = 0; i < 11; i++) {
+      const g = new THREE.Group();
+      const warm = i % 3 === 0;
+      const m = fade(new THREE.MeshBasicMaterial({
+        color: warm ? 0xffe3c8 : 0xffffff, fog: false, transparent: true, opacity: 0.92, depthWrite: false,
+      }), 0.92);
+      const n = 4 + (i % 3);
+      for (let k = 0; k < n; k++) {
+        const puff = new THREE.Mesh(puffGeo, m);
+        const r = 2.2 + ((i * 7 + k * 3) % 5) * 0.45;
+        puff.scale.set(r * 1.5, r * 0.62, r * 0.9);
+        puff.position.set((k - n / 2) * 3.1, ((k * 5 + i) % 3) * 0.35, ((k * 3 + i) % 3) * 0.6);
+        g.add(puff);
+      }
+      const a = -0.95 + (i / 10) * 1.9; // spread across the sky in front of the camera
+      g.position.set(Math.sin(a) * 66, 11 + ((i * 5) % 7) * 2.6, -Math.cos(a) * 66 + 4);
+      g.rotation.y = a * -1;
+      g.userData.speed = 0.25 + (i % 4) * 0.12;
+      g.userData.baseX = g.position.x;
+      scene.add(g);
+      clouds.push(g);
+    }
+
+    // Meadow around the arena plus a ring of low misty hills, so it isn't floating in a void.
+    const meadow = new THREE.Mesh(
+      new THREE.CircleGeometry(78, 64),
+      fade(new THREE.MeshStandardMaterial({ color: 0x9cc47b, roughness: 1, transparent: true }), 1),
+    );
+    meadow.rotation.x = -Math.PI / 2;
+    meadow.position.y = -0.55;
+    meadow.receiveShadow = true;
+    scene.add(meadow);
+    const hillMat = fade(new THREE.MeshStandardMaterial({ color: 0x86b0a4, roughness: 1, transparent: true }), 1);
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), hillMat);
+      const r = 3.2 + (i % 4) * 1.5;
+      hill.scale.set(r * 2.4, r * 0.5, r * 1.2);
+      hill.position.set(Math.cos(a) * 66, -0.9, Math.sin(a) * 66);
+      hill.rotation.y = -a;
+      scene.add(hill);
+    }
+
+    // Grass tufts and wildflowers just outside the arena edge.
+    const tuftGeo = new THREE.ConeGeometry(0.1, 0.5, 5);
+    const tuftMat = new THREE.MeshStandardMaterial({ color: 0x78ad59, roughness: 1 });
+    const flowerGeo = new THREE.SphereGeometry(0.11, 8, 6);
+    const flowerMats = [0xffffff, 0xffe066, 0xff9ec2].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 }));
+    for (let i = 0; i < 120; i++) {
+      const a = (i * 2.399963) % (Math.PI * 2); // golden angle spreads them evenly
+      const r = 9.6 + ((i * 37) % 100) / 100 * 11;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      if (i % 4 === 0) {
+        const f = new THREE.Mesh(flowerGeo, flowerMats[i % 3]);
+        f.position.set(x, -0.28, z);
+        scene.add(f);
+      } else {
+        const t = new THREE.Mesh(tuftGeo, tuftMat);
+        t.position.set(x, -0.3, z);
+        t.rotation.set(((i * 13) % 7) * 0.03, a, ((i * 11) % 7) * 0.03);
+        scene.add(t);
+      }
+    }
   }
 
   // ---- chickens -----------------------------------------------------------
@@ -621,6 +719,13 @@ export function createView(THREE, mount) {
     scene.background.lerp(tmpBg, 1 - Math.exp(-3 * dt));
     scene.fog.color.copy(scene.background);
     domainLight.intensity = damp(domainLight.intensity, lightTarget, 3, dt);
+
+    const domainK = Math.max(domains.p1.k, domains.p2.k);
+    for (const f of fades) f.m.opacity = f.base * (1 - Math.min(1, domainK * 1.15));
+    for (const c of clouds) {
+      c.position.x = c.userData.baseX + Math.sin(time * 0.02 * c.userData.speed * 10) * 6;
+      c.visible = domainK < 0.97;
+    }
 
     for (const c of crystals) {
       c.rotation.y += dt * c.userData.spin;
